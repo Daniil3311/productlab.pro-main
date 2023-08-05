@@ -1,0 +1,8 @@
+.layout__header {
+  background-color: white;
+}
+
+.layout__content {
+  padding: 24px 32px;
+  min-height: 100vh;
+}

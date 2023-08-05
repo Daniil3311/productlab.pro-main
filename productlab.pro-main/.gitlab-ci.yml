@@ -1,0 +1,47 @@
+stages:
+- deploy_info
+- build_admin_panel
+- build_up_docker
+
+deploying_job:
+  stage: deploy_info
+  only:
+    - main
+  tags: 
+    - deploy
+  script: 
+    - echo "Deploying application.."
+
+front-build-job:
+  stage: build_admin_panel
+  environment: production
+  only:
+    - main
+  tags:
+    - deploy
+  script:
+    - echo "Building front.."
+    - cd ./admin_pan_src
+    - yarn install
+    - CI= yarn build
+  artifacts:
+    expire_in: 10 minutes
+    paths:
+      - ./admin_pan_src/build/
+
+
+build_up_docker_job:
+  stage: build_up_docker
+  only:
+    - main
+  tags: 
+    - deploy
+  dependencies: 
+    - front-build-job
+  
+  script:
+    - echo "$BOT_WS_URL"
+    - docker compose stop
+    - chmod +x ./backend/entrypoint.sh
+    - cp -rv ./admin_pan_src/build/ ./nginx/
+    - ADMIN_URL="$ADMIN_URL" S3_BACKUPS_ACCESSKEY="$S3_BACKUPS_ACCESSKEY" S3_BACKUPS_SECRETKEY="$S3_BACKUPS_SECRETKEY" S3_ACCESS="$S3_ACCESS" S3_SECRET="$S3_SECRET" BOT_TOKEN="$BOT_TOKEN" BOT_WS_URL="$BOT_WS_URL" SECRET_TOKEN_WS="$SECRET_TOKEN_WS" DB_NAME="$DB_NAME" DB_PASSWORD="$DB_PASSWORD" DB_USER="$DB_USER" docker compose up --build -d

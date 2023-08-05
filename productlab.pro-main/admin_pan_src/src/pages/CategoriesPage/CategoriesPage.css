@@ -1,0 +1,8 @@
+.category--card {
+  cursor: pointer;
+  transition: opacity 0.1s linear;
+}
+
+.category--card:hover {
+  opacity: 0.9;
+}

@@ -1,0 +1,213 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=$DB_NAME
+      - POSTGRES_USER=$DB_USER
+      - POSTGRES_PASSWORD=$DB_PASSWORD
+    networks:
+      - nginx-proxy
+
+  backup:
+    # image: eeshugerman/postgres-backup-s3:15
+    build: ./backup
+    restart: always
+    environment:
+      SCHEDULE: '@daily'
+      BACKUP_KEEP_DAYS: 14
+      S3_ENDPOINT: https://storage.clo.ru/
+      S3_REGION: eu-north-1
+      S3_ACCESS_KEY_ID: ${S3_BACKUPS_ACCESSKEY}
+      S3_SECRET_ACCESS_KEY: ${S3_BACKUPS_SECRETKEY}
+      S3_BUCKET: apps3tablecrm-default-bucket
+      S3_PREFIX: backups/promo
+      POSTGRES_HOST: db
+      POSTGRES_DATABASE: landing
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - nginx-proxy
+
+  nextjs:
+    build: ./frontend
+    restart: always
+    networks:
+      - nginx-proxy
+    depends_on:
+      - backend
+
+  loki:
+    image: grafana/loki:latest
+    restart: always
+    volumes:
+      - ./loki-config:/etc/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - nginx-proxy
+
+  promtail:
+    image: grafana/promtail:latest
+    restart: always
+    volumes:
+      - /var/log:/var/log
+      - ./promtail-config:/etc/promtail
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - nginx-proxy
+
+  rabbitmq:
+    image: rabbitmq
+    restart: always
+    ports:
+      - 5672:5672
+    networks:
+      - nginx-proxy
+
+  prometheus:
+    image: prom/prometheus
+    restart: always
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./web.yml:/etc/prometheus/web.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.external-url=/prometheus/'
+      - '--web.config.file=/etc/prometheus/web.yml'
+      - '--web.route-prefix=/'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - nginx-proxy
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      - nginx-proxy
+
+  rabbitmq_consumer:
+    build: ./backend
+    restart: always
+    volumes:
+      - ./backend:/backend
+    depends_on:
+      - rabbitmq
+    environment:
+      - SERVICE=rabbitmq_consumer
+      - BOT_TOKEN=$BOT_TOKEN
+      - DB_NAME=$DB_NAME
+      - DB_PASSWORD=$DB_PASSWORD
+      - DB_USER=$DB_USER
+    networks:
+      - nginx-proxy
+
+  backend:
+    build: ./backend
+    restart: always
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./backend:/backend
+      - /images:/backend/images
+      - /storage:/backend/storage
+      - /tokens:/backend/tokens
+      - /migrations:/backend/db/alembic/versions
+    environment:
+      - ADMIN_URL=$ADMIN_URL
+      - BOT_TOKEN=$BOT_TOKEN
+      - BOT_WS_URL=$BOT_WS_URL
+      - DB_NAME=$DB_NAME
+      - DB_PASSWORD=$DB_PASSWORD
+      - DB_USER=$DB_USER
+      - SECRET_TOKEN_WS=$SECRET_TOKEN_WS
+      - S3_ACCESS=$S3_ACCESS
+      - S3_SECRET=$S3_SECRET
+    networks:
+      - nginx-proxy
+    depends_on:
+      - db
+
+  bot:
+    build: ./backend
+    restart: always
+    volumes:
+      - ./backend:/backend
+      - /images:/backend/images
+    environment:
+      - SERVICE=bot
+      - ADMIN_URL=$ADMIN_URL
+      - BOT_TOKEN=$BOT_TOKEN
+      - BOT_WS_URL=$BOT_WS_URL
+      - DB_NAME=$DB_NAME
+      - DB_PASSWORD=$DB_PASSWORD
+      - DB_USER=$DB_USER
+      - SECRET_TOKEN_WS=$SECRET_TOKEN_WS
+      - S3_ACCESS=$S3_ACCESS
+      - S3_SECRET=$S3_SECRET
+    networks:
+      - nginx-proxy
+    depends_on:
+      - backend
+
+  nginx:
+    build: ./nginx
+    container_name: productlab-nginx
+    restart: always
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/nginx
+      - /var/log:/var/log
+      - /etc/letsencrypt/:/etc/letsencrypt/
+      - ./htpasswd:/etc/nginx/.htpasswd
+      # - ./backend/storage:/storage
+      - /storage:/storage
+
+    networks:
+      - nginx-proxy
+    depends_on:
+      - backend
+      - loki
+      - prometheus
+      - adminer
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - nginx-proxy
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
+
+networks:
+  nginx-proxy:

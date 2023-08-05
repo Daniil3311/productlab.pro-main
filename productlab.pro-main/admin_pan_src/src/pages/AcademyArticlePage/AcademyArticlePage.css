@@ -1,0 +1,48 @@
+.academy .article__actions {
+  width: 100%;
+  background-color: white;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  padding: 24px;
+}
+
+.article__video video,
+.article__video img,
+.article__video iframe {
+  background-color: black;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  outline: none;
+}
+
+.article__video img {
+  width: 100%;
+}
+
+.article__description * {
+  text-wrap: wrap;
+}
+
+.article__description img {
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .academy .article__actions {
+    padding: 12px 35px;
+  }
+
+  .academy .article__title {
+    font-size: 16px;
+  }
+
+  .academy .article__video--container {
+    margin-left: -35px;
+    margin-right: -35px;
+  }
+
+  .academy .article__video video,
+  .academy .article__actions {
+    border-radius: 0;
+  }
+}

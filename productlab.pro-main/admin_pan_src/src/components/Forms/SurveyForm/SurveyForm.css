@@ -1,0 +1,11 @@
+.survey-item {
+  padding: 16px;
+  border: 1px solid rgba(5, 5, 5, 0.06);
+  border-radius: 12px;
+  background-color: #f7f7f7;
+}
+
+.survey-label {
+  padding-bottom: 6px;
+  display: block;
+}

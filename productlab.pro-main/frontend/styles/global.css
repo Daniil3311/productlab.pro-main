@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+	--gray-new: #374151;
+}
+
+body {
+	font-family: Inter, sans-serif;
+}
+
+/*Custom Styles Here*/
+
+ /*Underline Hover Effect*/
+.link-underline {
+	border-bottom-width: 0;
+	background-image: linear-gradient(transparent, transparent),
+	linear-gradient(#fff, #fff);
+	background-size: 0 10px;
+	background-position: 0 100%;
+	background-repeat: no-repeat;
+	transition: background-size 0.5s ease-in-out;
+}
+
+.link-underline-blue {
+	background-image: linear-gradient(transparent, transparent),
+	linear-gradient(#dcfce7, #dcfce7);
+}
+
+.link-effect:hover .link-underline,
+.link-underline:hover {
+	background-size: 100% 10px;
+	background-position: 0 100%;
+}
+
+.author-img {
+	width: 40px;
+	height: 40px;
+}
+
+.article__title {
+	line-height: 1.375;
+	font-weight: 600;
+	text-align: center;
+	margin-bottom: 0.75rem;
+	margin-top: 0.5rem;
+}
+
+.allPostsBtn {
+	display: flex;
+	justify-content: center;
+	color: rgb(59 130 246);
+}
+
+.users-wrapper {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 1.25rem;
+	margin-top: 1.5rem;
+	margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+	.users-wrapper {
+		gap: 4rem;
+		margin-top: 4rem;
+		margin-bottom: 8rem;
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+.post__content :where(strong) {
+	color: var(--tw-prose-bold);
+	font-weight: 600;
+}
+
+.post__content :where(h2),
+.post__content :where(h2) strong{
+	color: var(--tw-prose-headings) !important;
+	font-weight: 700 !important;
+	font-size: 1.5em !important;
+	line-height: 1.3333333 !important;
+}
+
+.post__content :where(blockquote) {
+	font-weight: 500;
+	font-style: italic;
+	color: var(--tw-prose-quotes);
+	border-left-width: 0.25rem;
+	border-left-color: #e5e7eb;
+	quotes: "\201C""\201D""\2018""\2019";
+	padding-left: 1em;
+}
+
+u {
+	text-decoration: none !important;
+}
+
+.post__content :where(a) {
+	--tw-text-opacity: 1;
+	color: rgb(37 99 235/var(--tw-text-opacity));
+	text-decoration: underline;
+	font-weight: 500;
+}
+
+ul, ol {
+	list-style: revert;
+}
+
+li::marker {
+	color: #d1d5db !important;
+}
